@@ -4,6 +4,58 @@ This is my submission for the alfred_ application challenge. The task was to des
 
 ---
 
+## Pipeline
+
+```mermaid
+flowchart TD
+    A([User Message + Context]) --> B[API: POST /api/evaluate]
+
+    B --> C{Latest message AND history both empty?}
+    C -->|Yes| D[Short-circuit: Ask a clarifying question]
+    C -->|No| E[evaluation_service.py: Build prompt]
+
+    E --> F[Inject: action_type, parameters, latest_message, conversation_history, user_state]
+
+    F --> G{Failure Simulation?}
+    G -->|timeout| H[Raise TimeoutError]
+    G -->|malformed_output| I[Return broken JSON]
+    G -->|none| J[LLM: llama-3.3-70b via Groq API]
+
+    J --> K[Parse JSON via Pydantic]
+    H --> L[EvaluationProcessingError]
+    I --> L
+    K -->|Parse fails| L
+    K -->|Parse succeeds| M[ContextEvaluation Signals Object]
+
+    M --> N[engine.py: Deterministic Rules]
+
+    N --> O{intent_clear=false OR missing_parameters?}
+    O -->|Yes| P[Ask a clarifying question]
+    O -->|No| Q{risk_score >= 8?}
+    Q -->|Yes| R[Refuse / escalate]
+    Q -->|No| S{contradiction_flag?}
+    S -->|Yes| T[Confirm before executing]
+    S -->|No| U{risk_score >= 6?}
+    U -->|Yes| T
+    U -->|No| V{risk_score >= 3?}
+    V -->|Yes| W[Execute and tell the user after]
+    V -->|No| X[Execute silently]
+
+    L --> Y[Refuse / escalate fallback]
+
+    D --> Z([Response to UI])
+    P --> Z
+    R --> Z
+    T --> Z
+    W --> Z
+    X --> Z
+    Y --> Z
+
+    Z --> AA[GlassBox: inputs, prompt, raw output, signals, final decision]
+```
+
+---
+
 ## How the System Works
 
 The core idea is a hybrid pipeline: one layer handles the messy language understanding, and a deterministic rules engine makes the final call. The evaluator never directly outputs "Execute silently" or "Refuse" — it outputs structured signals, and the rules engine decides what to do with them.
