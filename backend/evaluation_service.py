@@ -83,7 +83,7 @@ def evaluate_context(
                     {"role": "user", "content": user_prompt}
                 ],
                 response_format={"type": "json_object"},
-                timeout=5.0  # Requirement: Handle timeout
+                timeout=5.0
             )
 
             raw_output = response.choices[0].message.content or ""
