@@ -1,0 +1,49 @@
+DEPLOYMENT INSTRUCTIONS — alfred_ Decision Layer
+================================================
+
+ARCHITECTURE
+------------
+Single web service: the FastAPI backend builds and serves the React frontend
+as static files. One URL serves both the UI and the /api/evaluate endpoint.
+
+DEPLOY TO RENDER (recommended, free tier works)
+-----------------------------------------------
+1. Push this repo to GitHub (make sure render.yaml is committed).
+
+2. Go to https://render.com → New → Web Service
+
+3. Connect your GitHub repo.
+
+4. Render will auto-detect render.yaml. Confirm these settings:
+     Build Command : cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt
+     Start Command : cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+     Environment   : Python
+
+5. Under "Environment Variables", add:
+     OPENAI_API_KEY = sk-...your-key-here...
+
+6. Click "Create Web Service". First deploy takes ~3 minutes.
+
+7. Your live URL will be: https://alfred-decision-layer.onrender.com
+   (or whatever Render assigns — copy it from the dashboard)
+
+LOCAL DEVELOPMENT
+-----------------
+Terminal 1 (backend):
+  cd backend
+  pip install -r requirements.txt
+  export OPENAI_API_KEY=sk-...
+  uvicorn main:app --reload --port 8000
+
+Terminal 2 (frontend):
+  cd frontend
+  npm install
+  npm run dev
+  # opens at http://localhost:5173
+  # /api calls are proxied to localhost:8000 via vite.config.js
+
+ENVIRONMENT VARIABLES
+---------------------
+  OPENAI_API_KEY   Required. The API key used by the backend evaluator.
+                   Never commit this — it should only live in .env (gitignored)
+                   or in the Render dashboard.
